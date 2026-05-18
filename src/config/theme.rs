@@ -38,6 +38,8 @@ pub struct CustomThemeColors {
     pub yellow: Option<String>,
     pub red: Option<String>,
     pub blue: Option<String>,
+    pub selection_fg: Option<String>,
+    pub selection_bg: Option<String>,
     pub teal: Option<String>,
     pub peach: Option<String>,
 }
@@ -144,6 +146,8 @@ name = "nord"
 panel_bg = "#1e1e2e"
 accent = "#ff79c6"
 red = "rgb(255, 85, 85)"
+selection_fg = "black"
+selection_bg = "darkgray"
 "##;
         let config: Config = toml::from_str(toml).unwrap();
         assert_eq!(config.theme.name.as_deref(), Some("nord"));
@@ -151,6 +155,8 @@ red = "rgb(255, 85, 85)"
         assert_eq!(custom.panel_bg.as_deref(), Some("#1e1e2e"));
         assert_eq!(custom.accent.as_deref(), Some("#ff79c6"));
         assert_eq!(custom.red.as_deref(), Some("rgb(255, 85, 85)"));
+        assert_eq!(custom.selection_fg.as_deref(), Some("black"));
+        assert_eq!(custom.selection_bg.as_deref(), Some("darkgray"));
         assert!(custom.green.is_none());
     }
 

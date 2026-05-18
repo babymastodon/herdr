@@ -7,7 +7,6 @@ use ratatui::{
 };
 
 use super::scrollbar::{render_pane_scrollbar, should_show_scrollbar};
-use super::widgets::panel_contrast_fg;
 use crate::app::state::Palette;
 use crate::app::{AppState, Mode};
 use crate::layout::PaneInfo;
@@ -332,7 +331,11 @@ fn render_selection_highlight(
                 for x in 0..inner.width {
                     if sel.contains(y, x, scroll_metrics) {
                         let cell = &mut buf[(inner.x + x, inner.y + y)];
-                        cell.set_style(Style::default().fg(panel_contrast_fg(p)).bg(p.blue));
+                        let mut style = Style::default().bg(p.selection_bg);
+                        if let Some(fg) = p.selection_fg {
+                            style = style.fg(fg);
+                        }
+                        cell.set_style(style);
                     }
                 }
             }
