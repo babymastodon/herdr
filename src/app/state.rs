@@ -6,6 +6,8 @@ use ratatui::style::Color;
 use crate::detect::AgentState;
 use crate::layout::{PaneId, PaneInfo, SplitBorder};
 use crate::selection::Selection;
+use crate::terminal_theme::TerminalTheme;
+use crate::workspace::Workspace;
 
 // ---------------------------------------------------------------------------
 // Selection autoscroll types
@@ -31,8 +33,14 @@ pub(crate) struct SelectionAutoscroll {
     pub last_mouse_screen_row: u16,
     pub inner_rect: Rect,
 }
-use crate::terminal_theme::TerminalTheme;
-use crate::workspace::Workspace;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SelectionForeground {
+    Color(Color),
+    /// Preserve is only meaningful for selection foreground because the
+    /// selected terminal cell already has a foreground color to keep.
+    PreserveCell,
+}
 
 // ---------------------------------------------------------------------------
 // Theme palette — all UI colors in one place, ready for theming
@@ -71,6 +79,10 @@ pub struct Palette {
     pub red: Color,
     /// Unseen / done notification accent.
     pub blue: Color,
+    /// Terminal text selection foreground.
+    pub selection_fg: SelectionForeground,
+    /// Terminal text selection background.
+    pub selection_bg: Color,
     /// Notification accent / unseen markers.
     pub teal: Color,
     /// Interrupted / warning states.
@@ -95,6 +107,8 @@ impl Palette {
             yellow: Color::Rgb(249, 226, 175),
             red: Color::Rgb(243, 139, 168),
             blue: Color::Rgb(137, 180, 250),
+            selection_fg: SelectionForeground::Color(Color::Black),
+            selection_bg: Color::Rgb(137, 180, 250),
             teal: Color::Rgb(148, 226, 213),
             peach: Color::Rgb(250, 179, 135),
         }
@@ -117,6 +131,8 @@ impl Palette {
             yellow: Color::Rgb(223, 142, 29),
             red: Color::Rgb(210, 15, 57),
             blue: Color::Rgb(30, 102, 245),
+            selection_fg: SelectionForeground::Color(Color::Black),
+            selection_bg: Color::Rgb(30, 102, 245),
             teal: Color::Rgb(23, 146, 153),
             peach: Color::Rgb(254, 100, 11),
         }
@@ -139,6 +155,8 @@ impl Palette {
             yellow: Color::Yellow,
             red: Color::LightRed,
             blue: Color::Blue,
+            selection_fg: SelectionForeground::PreserveCell,
+            selection_bg: Color::DarkGray,
             teal: Color::Cyan,
             peach: Color::Yellow,
         }
@@ -161,6 +179,8 @@ impl Palette {
             yellow: Color::Rgb(224, 175, 104),
             red: Color::Rgb(247, 118, 142),
             blue: Color::Rgb(122, 162, 247),
+            selection_fg: SelectionForeground::Color(Color::Black),
+            selection_bg: Color::Rgb(122, 162, 247),
             teal: Color::Rgb(125, 207, 255),
             peach: Color::Rgb(255, 158, 100),
         }
@@ -183,6 +203,8 @@ impl Palette {
             yellow: Color::Rgb(140, 108, 62),
             red: Color::Rgb(245, 42, 101),
             blue: Color::Rgb(46, 125, 233),
+            selection_fg: SelectionForeground::Color(Color::Black),
+            selection_bg: Color::Rgb(46, 125, 233),
             teal: Color::Rgb(17, 140, 116),
             peach: Color::Rgb(177, 92, 0),
         }
@@ -205,6 +227,8 @@ impl Palette {
             yellow: Color::Rgb(241, 250, 140),
             red: Color::Rgb(255, 85, 85),
             blue: Color::Rgb(139, 233, 253), // cyan-ish
+            selection_fg: SelectionForeground::Color(Color::Black),
+            selection_bg: Color::Rgb(139, 233, 253),
             teal: Color::Rgb(139, 233, 253),
             peach: Color::Rgb(255, 184, 108),
         }
@@ -227,6 +251,8 @@ impl Palette {
             yellow: Color::Rgb(235, 203, 139),
             red: Color::Rgb(191, 97, 106),
             blue: Color::Rgb(129, 161, 193),
+            selection_fg: SelectionForeground::Color(Color::Black),
+            selection_bg: Color::Rgb(129, 161, 193),
             teal: Color::Rgb(143, 188, 187),
             peach: Color::Rgb(208, 135, 112),
         }
@@ -249,6 +275,8 @@ impl Palette {
             yellow: Color::Rgb(250, 189, 47),
             red: Color::Rgb(251, 73, 52),
             blue: Color::Rgb(131, 165, 152),
+            selection_fg: SelectionForeground::Color(Color::Black),
+            selection_bg: Color::Rgb(131, 165, 152),
             teal: Color::Rgb(142, 192, 124),
             peach: Color::Rgb(254, 128, 25),
         }
@@ -271,6 +299,8 @@ impl Palette {
             yellow: Color::Rgb(181, 118, 20),
             red: Color::Rgb(157, 0, 6),
             blue: Color::Rgb(7, 102, 120),
+            selection_fg: SelectionForeground::Color(Color::Black),
+            selection_bg: Color::Rgb(7, 102, 120),
             teal: Color::Rgb(66, 123, 88),
             peach: Color::Rgb(175, 58, 3),
         }
@@ -293,6 +323,8 @@ impl Palette {
             yellow: Color::Rgb(229, 192, 123),
             red: Color::Rgb(224, 108, 117),
             blue: Color::Rgb(97, 175, 239),
+            selection_fg: SelectionForeground::Color(Color::Black),
+            selection_bg: Color::Rgb(97, 175, 239),
             teal: Color::Rgb(86, 182, 194),
             peach: Color::Rgb(209, 154, 102),
         }
@@ -315,6 +347,8 @@ impl Palette {
             yellow: Color::Rgb(193, 132, 1),
             red: Color::Rgb(228, 86, 73),
             blue: Color::Rgb(64, 120, 242),
+            selection_fg: SelectionForeground::Color(Color::Black),
+            selection_bg: Color::Rgb(64, 120, 242),
             teal: Color::Rgb(1, 132, 188),
             peach: Color::Rgb(152, 104, 1),
         }
@@ -337,6 +371,8 @@ impl Palette {
             yellow: Color::Rgb(181, 137, 0),
             red: Color::Rgb(220, 50, 47),
             blue: Color::Rgb(38, 139, 210),
+            selection_fg: SelectionForeground::Color(Color::Black),
+            selection_bg: Color::Rgb(38, 139, 210),
             teal: Color::Rgb(42, 161, 152),
             peach: Color::Rgb(203, 75, 22),
         }
@@ -359,6 +395,8 @@ impl Palette {
             yellow: Color::Rgb(181, 137, 0),
             red: Color::Rgb(220, 50, 47),
             blue: Color::Rgb(38, 139, 210),
+            selection_fg: SelectionForeground::Color(Color::Black),
+            selection_bg: Color::Rgb(38, 139, 210),
             teal: Color::Rgb(42, 161, 152),
             peach: Color::Rgb(203, 75, 22),
         }
@@ -381,6 +419,8 @@ impl Palette {
             yellow: Color::Rgb(192, 163, 110),
             red: Color::Rgb(195, 64, 67),
             blue: Color::Rgb(126, 156, 216),
+            selection_fg: SelectionForeground::Color(Color::Black),
+            selection_bg: Color::Rgb(126, 156, 216),
             teal: Color::Rgb(127, 180, 202),
             peach: Color::Rgb(255, 160, 102),
         }
@@ -403,6 +443,8 @@ impl Palette {
             yellow: Color::Rgb(119, 113, 63),
             red: Color::Rgb(200, 64, 83),
             blue: Color::Rgb(77, 105, 155),
+            selection_fg: SelectionForeground::Color(Color::Black),
+            selection_bg: Color::Rgb(77, 105, 155),
             teal: Color::Rgb(78, 140, 162),
             peach: Color::Rgb(204, 109, 0),
         }
@@ -425,8 +467,10 @@ impl Palette {
             yellow: Color::Rgb(246, 193, 119), // gold
             red: Color::Rgb(235, 111, 146),    // love
             blue: Color::Rgb(49, 116, 143),    // pine
-            teal: Color::Rgb(156, 207, 216),   // foam
-            peach: Color::Rgb(234, 154, 151),  // rose
+            selection_fg: SelectionForeground::Color(Color::Black),
+            selection_bg: Color::Rgb(49, 116, 143), // pine
+            teal: Color::Rgb(156, 207, 216),        // foam
+            peach: Color::Rgb(234, 154, 151),       // rose
         }
     }
 
@@ -447,6 +491,8 @@ impl Palette {
             yellow: Color::Rgb(234, 157, 52),
             red: Color::Rgb(180, 99, 122),
             blue: Color::Rgb(40, 105, 131),
+            selection_fg: SelectionForeground::Color(Color::Black),
+            selection_bg: Color::Rgb(40, 105, 131),
             teal: Color::Rgb(86, 148, 159),
             peach: Color::Rgb(215, 130, 126),
         }
@@ -469,6 +515,8 @@ impl Palette {
             yellow: Color::Rgb(255, 199, 153),
             red: Color::Rgb(255, 128, 128),
             blue: Color::Rgb(176, 176, 176),
+            selection_fg: SelectionForeground::Color(Color::Black),
+            selection_bg: Color::Rgb(176, 176, 176),
             teal: Color::Rgb(102, 221, 204),
             peach: Color::Rgb(255, 199, 153),
         }
@@ -544,6 +592,12 @@ impl Palette {
         if let Some(c) = &custom.blue {
             self.blue = parse_color(c);
         }
+        if let Some(c) = &custom.selection_fg {
+            self.selection_fg = parse_selection_fg(c);
+        }
+        if let Some(c) = &custom.selection_bg {
+            self.selection_bg = parse_color(c);
+        }
         if let Some(c) = &custom.teal {
             self.teal = parse_color(c);
         }
@@ -551,6 +605,14 @@ impl Palette {
             self.peach = parse_color(c);
         }
         self
+    }
+}
+
+fn parse_selection_fg(value: &str) -> SelectionForeground {
+    if value.trim().eq_ignore_ascii_case("preserve") {
+        SelectionForeground::PreserveCell
+    } else {
+        SelectionForeground::Color(crate::config::parse_color(value))
     }
 }
 
@@ -1512,6 +1574,56 @@ mod tests {
                 "theme should resolve: {name}"
             );
         }
+    }
+
+    #[test]
+    fn custom_selection_background_override_applies() {
+        let custom = crate::config::CustomThemeColors {
+            selection_fg: Some("white".to_string()),
+            selection_bg: Some("red".to_string()),
+            ..Default::default()
+        };
+
+        let palette = Palette::terminal().with_overrides(&custom);
+        assert_eq!(
+            palette.selection_fg,
+            SelectionForeground::Color(Color::White)
+        );
+        assert_eq!(palette.selection_bg, Color::Red);
+    }
+
+    #[test]
+    fn selection_foreground_defaults_to_black_for_rgb_themes() {
+        assert_eq!(
+            Palette::catppuccin().selection_fg,
+            SelectionForeground::Color(Color::Black)
+        );
+        assert_eq!(
+            Palette::catppuccin().selection_bg,
+            Color::Rgb(137, 180, 250)
+        );
+    }
+
+    #[test]
+    fn terminal_theme_preserves_selection_foreground() {
+        assert_eq!(
+            Palette::terminal().selection_fg,
+            SelectionForeground::PreserveCell
+        );
+        assert_eq!(Palette::terminal().selection_bg, Color::DarkGray);
+    }
+
+    #[test]
+    fn selection_foreground_can_preserve_cell_color() {
+        let custom = crate::config::CustomThemeColors {
+            selection_fg: Some("preserve".to_string()),
+            ..Default::default()
+        };
+
+        assert_eq!(
+            Palette::terminal().with_overrides(&custom).selection_fg,
+            SelectionForeground::PreserveCell
+        );
     }
 
     #[test]
