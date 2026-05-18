@@ -283,6 +283,7 @@ all tokens are optional — only set what you want to change.
 | `yellow` | busy/running states |
 | `red` | waiting/needs attention states |
 | `blue` | unseen notifications |
+| `selection_bg` | terminal text selection background |
 | `teal` | done notification accents |
 | `peach` | interrupted/warning states |
 

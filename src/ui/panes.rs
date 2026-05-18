@@ -325,7 +325,9 @@ fn render_selection_highlight(
                 for x in 0..inner.width {
                     if sel.contains(y, x, scroll_metrics) {
                         let cell = &mut buf[(inner.x + x, inner.y + y)];
-                        cell.set_style(Style::default().fg(panel_contrast_fg(p)).bg(p.blue));
+                        cell.set_style(
+                            Style::default().fg(panel_contrast_fg(p)).bg(p.selection_bg),
+                        );
                     }
                 }
             }
